@@ -11,9 +11,9 @@
   (let [payload (ig/token-and-user-from-code code)]
     (if (= 200 (:code (:status payload)))
       (let [{tuser "user" taccess-token "access_token"} (:body payload)
-            user (assoc tuser :access_token taccess-token)]
-        (println payload)
-        (if (not (data/find-user-by :id (:id user)))
+            user (assoc tuser :access_token taccess-token)
+            found-user (data/find-user-by :id (user "id"))]
+        (if (not found-user)
           (data/store-user user))))))
 
 (defroutes app-routes

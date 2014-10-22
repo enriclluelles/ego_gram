@@ -10,7 +10,7 @@
 
 (defn find-user-by [field value]
   (let [query (apply str ["select * from users where " (name field) " = ? limit 1"])]
-  (sql/query connection [query value])))
+  (first (sql/query connection [query value]))))
 
 (defn create-user-table []
   (sql/db-do-commands connection
