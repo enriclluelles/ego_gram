@@ -5,6 +5,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [compojure "1.1.9"]
                  [instagram-api "0.1.7"]
+                 [ring/ring-json "0.3.1"]
                  [org.clojure/java.jdbc "0.3.5"]
                  [postgresql "9.3-1102.jdbc4"]
                  [cheshire "5.3.1"]]
