@@ -17,9 +17,7 @@
           (data/store-user user))))))
 
 (defroutes app-routes
-  (GET "/" [] {:body (ig/most-popular)
-               :status 200
-               :headers {"Content-Type" "application/json; ; charset=utf-8"}})
+  (GET "/" [] "")
   (GET "/auth" [] (response/redirect ig/auth-url))
   (GET "/authcb" [code] (authcb code) "Stored")
   (route/resources "/")
