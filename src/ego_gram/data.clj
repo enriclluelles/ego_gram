@@ -47,7 +47,6 @@
         result (sql/query connection [query value])]
     (first result)))
 
-
 (defn find-user-by [field value]
   (find-by "users" field value))
 
