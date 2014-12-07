@@ -21,11 +21,9 @@
             user-from-instagram (ig/get-user-info taccess-token user-id)
             extended-user (merge user (user-from-instagram "counts"))]
         (session/put! :user extended-user)
-        (if found-user
-          (session/put! :user found-user)
-          (do
-            (data/store-user extended-user)
-            (session/put! :user extended-user)))))))
+        (if (not found-user)
+            (data/store-user extended-user))
+        extended-user))))
 
 (defn all-users []
   {:body {:users (ego-gram.data/all-users)}})
@@ -37,8 +35,8 @@
   {:body {:campaigns (ego-gram.data/all-campaigns)}})
 
 (defn find-campaign [id]
-  (let [intId (Integer/parseInt id)
-        body (list (ego-gram.data/find-campaign-by :id intId))]
+  (let [int-id (Integer/parseInt id)
+        body (list (ego-gram.data/find-campaign-by :id int-id))]
     {:body {:campaigns body}}))
 
 (defn show-session []
@@ -54,9 +52,13 @@
     {:body {:user user}}))
 
 (defroutes app-routes
-  (GET "/" [] "")
+  (GET "/" [] "shit")
   (GET "/auth" [] (response/redirect ig/auth-url))
-  (GET "/auth_callback" [code] (authcb code) (redirect "http://google.com"))
+  (GET "/auth_callback" [code]
+       (let [frontend-url (System/getenv "FRONTEND_CALLBACK_URL")
+             token ((authcb code) :access_token)
+             url-with-params (str frontend-url "/dashboard?session_token=" token)]
+         (redirect url-with-params)))
   (context "/api" []
            (context "/users" []
                     (GET "/" [] (all-users))
@@ -71,5 +73,20 @@
   (route/resources "/")
   (route/not-found "Not Found"))
 
-  (def app
-    (nm/app-handler [(m/wrap-json-response (handler/api app-routes))]))
+(defn wrap-cors-allow-all [handler]
+  ; we define a function that adds the headers we need to a response
+  (let [add-headers-to-response (fn [response]
+                                  (let [old-headers (:headers response)
+                                        to-add '("Access-Control-Allow-Origin" "*" "Access-Control-Allow-Headers" "X-Session-Token")
+                                        new-headers (apply assoc old-headers to-add)]
+                                    (assoc response :headers new-headers)))]
+    (fn [request]
+      ; depending on wether the request is an options or not we call the next middleware
+      ; and add the headers to the response or just return a blank response with the headers
+      (let [response (if (= :options (:request-method request))
+                       {:status 200 :headers {} :body ""}
+                       (handler request))]
+        (add-headers-to-response response)))))
+
+(def app
+  (wrap-cors-allow-all (nm/app-handler [(m/wrap-json-response (handler/api app-routes))])))
