@@ -1,11 +1,11 @@
 (ns ego-gram.instagram-client
   (:require
-    [cheshire.core :as json])
-  (:use
-    instagram.oauth
-    instagram.callbacks
-    instagram.callbacks.handlers
-    instagram.api.endpoint)
+    [cheshire.core :as json]
+    [ego-gram.middlewares :refer [current-user]]
+    [instagram.oauth :refer :all]
+    [instagram.callbacks :refer :all]
+    [instagram.callbacks.handlers :refer :all]
+    [instagram.api.endpoint :refer [authorization-url get-access-token]])
   (:import
     (instagram.callbacks.protocols SyncSingleCallback)))
 
@@ -14,17 +14,19 @@
    :client-secret (System/getenv "APP_SECRET")
    :redirect-uri "http://localhost:3000/auth_callback"})
 
-(defn most-popular []
-  (let [payload (get-popular :oauth instagram-credentials)
-        body (:body payload)
-        status (:status payload)]
-    (json/generate-string body)))
-
 (def auth-url (authorization-url instagram-credentials "likes comments relationships"))
 
 (defn token-and-user-from-code [code]
   (get-access-token instagram-credentials code))
 
-(defn get-user-info [access-token id]
-  (let [payload-from-instagram (get-user :access-token access-token :params {:user_id id})]
-    ((payload-from-instagram :body) "data")))
+(defmacro ig-with-token [& funcs]
+  `(do ~@(map (fn [c]
+                `(defn ~(symbol c)
+                   ([] (~(symbol c) {}))
+                   ([params#]
+                    (let [access-token# ((current-user) :access_token)
+                          to-call# ~(symbol (str "instagram.api.endpoint/" c))
+                          result# (to-call# :access-token access-token# :params params#)]
+                      ((result# :body) "data"))))) funcs)))
+
+(ig-with-token get-user get-popular get-current-user-liked-medias)
