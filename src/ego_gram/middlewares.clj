@@ -23,10 +23,14 @@
 
 (defn wrap-cors-allow-all [handler]
   ; we define a function that adds the headers we need to a response
-  (let [add-headers-to-response (fn [response]
+  (let [add-headers-to-response (fn [response request]
                                   (let [old-headers (:headers response)
-                                        to-add '("Access-Control-Allow-Origin" "*" "Access-Control-Allow-Headers" "X-Session-Token")
-                                        new-headers (apply assoc old-headers to-add)]
+                                        request-headers (:headers request)
+                                        allowed-headers (request-headers "access-control-request-headers")
+                                        to-add {"Access-Control-Allow-Origin" "*"
+                                                "Access-Control-Allow-Headers" allowed-headers
+                                                "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE"}
+                                        new-headers (conj old-headers to-add)]
                                     (assoc response :headers new-headers)))]
     (fn [request]
       ; depending on wether the request is an options or not we call the next middleware
@@ -34,4 +38,4 @@
       (let [response (if (= :options (:request-method request))
                        {:status 200 :headers {} :body ""}
                        (handler request))]
-        (add-headers-to-response response)))))
+        (add-headers-to-response response request)))))
