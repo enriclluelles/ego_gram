@@ -11,8 +11,7 @@
             user (assoc tuser :access_token taccess-token)
             user-id (user "id")
             found-user (data/find-user-by :id user-id)
-            user-from-instagram (ig/get-user {:user_id user-id})
-            extended-user (merge user (user-from-instagram "counts"))]
+            extended-user (merge user (tuser "counts"))]
         (if (not found-user)
             (data/store-user extended-user))
         extended-user))))
