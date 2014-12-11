@@ -71,5 +71,6 @@
   (-> app-routes
       compojure.handler/api
       ring.middleware.json/wrap-json-response
+      ring.middleware.json/wrap-json-params
       wrap-with-current-user
       wrap-cors-allow-all))
