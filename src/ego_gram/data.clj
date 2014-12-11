@@ -21,7 +21,10 @@
 (def campaign-fields
   '([:id "serial" :primary :key]
     [:action "varchar(255)"]
-    [:target "varchar(255)"]))
+    [:likes "integer"]
+    [:target "varchar(255)"]
+    [:updated_at "timestamp"]
+    [:created_at "timestamp"]))
 
 (def campaign-field-names
   (map first campaign-fields))
@@ -47,6 +50,12 @@
         result (sql/query connection [query value])]
     (first result)))
 
+(defn delete [table id]
+  (sql/delete! connection (name table) ["id = ?" (Integer/parseInt (str id))]))
+
+(defn update [table id data]
+  (sql/update! connection (name table) data ["id = ?" (Integer/parseInt (str id))]))
+
 (defn find-user-by [field value]
   (find-by "users" field value))
 
@@ -60,8 +69,9 @@
                              (concat '(:users) user-fields))))
 
 (defn store-campaign [pcampaign]
-  (let [campaign (select-keys (clojure.walk/keywordize-keys pcampaign) campaign-field-names)]
-    (sql/insert! connection :campaigns campaign)))
+  (let [campaign (select-keys (clojure.walk/keywordize-keys pcampaign) campaign-field-names)
+        result-campaign (sql/insert! connection :campaigns campaign)]
+    result-campaign))
 
 (defn create-campaigns-table []
   (sql/db-do-commands connection

@@ -2,6 +2,8 @@
   (:require
     [ego-gram.auth :refer :all]
     [ego-gram.instagram-client :as ig]
+    [ego-gram.data :as data]
+    [ego-gram.campaigns :as campaigns]
     [ego-gram.middlewares :refer :all]
     [compojure.core :refer :all]
     [compojure.route :as route]
@@ -10,25 +12,17 @@
     [ring.util.response :refer :all]))
 
 (defn all-users []
-  {:body {:users (ego-gram.data/all-users)}})
+  {:body {:users (data/all-users)}})
 
 (defn find-user [id]
-  {:body {:users (list (ego-gram.data/find-user-by :id id))}})
-
-(defn all-campaigns []
-  {:body {:campaigns (ego-gram.data/all-campaigns)}})
+  {:body {:users (list (data/find-by "users" :id id))}})
 
 (defn media [liked popular]
   (let [body (if liked
                (ig/get-current-user-liked-medias)
                (if popular
                  (ig/get-popular)))]
-    {:body body}))
-
-(defn find-campaign [id]
-  (let [int-id (Integer/parseInt id)
-        body (list (ego-gram.data/find-campaign-by :id int-id))]
-    {:body {:campaigns body}}))
+    {:body {:medias body}}))
 
 (defn show-session []
   (let [user-from-store (current-user)
@@ -58,10 +52,16 @@
              (GET "/media" {{liked :liked popular :popular} :params}
                   (media liked popular))
              (context "/campaigns" []
-                      (GET "/" [] (all-campaigns))
-                      (GET "/:id" [id] (find-campaign))
-                      (POST "/" {params :params}
-                            (ego-gram.data/store-campaign params)))
+                      (GET "/" []
+                           (all-campaigns))
+                      (GET "/:id" [id]
+                           (campaigns/find id))
+                      (DELETE "/:id" [id]
+                              (campaigns/delete id))
+                      (PUT "/:id" {{id :id campaign :campaign} :params}
+                           (campaigns/update id campaign))
+                      (POST "/" {{campaign :campaign} :params}
+                            (campaigns/create campaign)))
              (context "/session" []
                       (GET "/" [] (show-session)))))
   (route/resources "/")
