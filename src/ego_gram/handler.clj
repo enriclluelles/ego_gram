@@ -13,7 +13,7 @@
     [ring.util.response :refer :all]))
 
 (defn all-users []
-  {:body {:users (data/all-users)}})
+  {:body {:users (data/all-from "users")}})
 
 (defn find-user [id]
   {:body {:users (list (data/find-by "users" :id id))}})
@@ -54,7 +54,7 @@
                   (media liked popular))
              (context "/campaigns" []
                       (GET "/" []
-                           (all-campaigns))
+                           (campaigns/all))
                       (GET "/:id" [id]
                            (campaigns/find id))
                       (DELETE "/:id" [id]
@@ -74,4 +74,6 @@
       ring.middleware.json/wrap-json-response
       ring.middleware.json/wrap-json-params
       wrap-with-current-user
-      wrap-cors-allow-all))
+      (ring.middleware.cors/wrap-cors :access-control-allow-headers :any
+                                      :access-control-allow-origin #".*"
+                                      :access-control-allow-methods [:get :post :put :delete])))

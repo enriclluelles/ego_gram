@@ -1,6 +1,7 @@
 (ns ego-gram.data
   (:require
     [clojure.java.jdbc :as sql]
+    [clojure.string :as str]
     [clojure.walk]))
 
 (def user-fields
@@ -20,6 +21,7 @@
 
 (def campaign-fields
   '([:id "serial" :primary :key]
+    [:user_id "varchar(255)" "references users(id)"]
     [:action "varchar(255)"]
     [:likes "integer"]
     [:target "varchar(255)"]
@@ -36,14 +38,16 @@
   (let [user (select-keys (clojure.walk/keywordize-keys puser) user-field-names)]
     (sql/insert! connection :users user)))
 
-(defn all-from-table [table]
-  (sql/query connection (apply str ["select * from " table])))
-
-(defn all-users []
-  (all-from-table "users"))
-
-(defn all-campaigns []
-  (all-from-table "campaigns"))
+(defn all-from [table & [conditions & _]]
+  (let [query-string (if (map? conditions)
+                       (str "where " (str/join " and " (mapv (fn [[k v]]
+                                                               (let [v (if (string? v)
+                                                                         (str "'" v "'")
+                                                                         v)]
+                                                                 (str (name k) "=" v)))
+                                                            conditions)))
+                       (str conditions))]
+    (sql/query connection (apply str ["select * from " table " " query-string]))))
 
 (defn find-by [table field value]
   (let [query (apply str ["select * from " table " where " (name field) " = ? limit 1"])

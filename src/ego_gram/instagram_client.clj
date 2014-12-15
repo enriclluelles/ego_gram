@@ -23,10 +23,12 @@
   `(do ~@(map (fn [c]
                 `(defn ~(symbol c)
                    ([] (~(symbol c) {}))
-                   ([params#]
-                    (let [access-token# ((current-user) :access_token)
-                          to-call# ~(symbol (str "instagram.api.endpoint/" c))
+                   ([params#] (~(symbol c) ((current-user) :access_token) params#))
+                   ([access-token# params#]
+                    (let [to-call# ~(symbol (str "instagram.api.endpoint/" c))
                           result# (to-call# :access-token access-token# :params params#)]
                       ((result# :body) "data"))))) funcs)))
 
-(ig-with-token get-user get-popular get-current-user-liked-medias)
+(ig-with-token
+  get-user get-popular get-current-user-liked-medias get-tagged-medias
+  post-like)
