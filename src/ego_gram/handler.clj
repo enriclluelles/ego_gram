@@ -8,6 +8,7 @@
     [compojure.core :refer :all]
     [compojure.route :as route]
     [compojure.handler]
+    [ring.middleware.cors]
     [ring.middleware.json]
     [ring.util.response :refer :all]))
 
