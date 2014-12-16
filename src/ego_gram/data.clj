@@ -32,7 +32,7 @@
   (map first campaign-fields))
 
 (def connection
-  (System/getenv "DB_URL"))
+  (System/getenv "DATABASE_URL"))
 
 (defn store-user [puser]
   (let [user (select-keys (clojure.walk/keywordize-keys puser) user-field-names)]

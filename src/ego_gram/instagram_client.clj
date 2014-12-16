@@ -1,6 +1,5 @@
 (ns ego-gram.instagram-client
   (:require
-    [cheshire.core :as json]
     [ego-gram.middlewares :refer [current-user]]
     [instagram.oauth :refer :all]
     [instagram.callbacks :refer :all]
@@ -9,15 +8,17 @@
   (:import
     (instagram.callbacks.protocols SyncSingleCallback)))
 
-(def instagram-credentials
-  {:client-id (System/getenv "APP_ID")
-   :client-secret (System/getenv "APP_SECRET")
-   :redirect-uri "http://localhost:3000/auth_callback"})
+(defonce credentials (atom nil))
 
-(def auth-url (authorization-url instagram-credentials "likes comments relationships"))
+(defn instagram-credentials [& [host & _]]
+  (swap! credentials #(if %1 %1 %2) {:client-id (System/getenv "APP_ID")
+                                     :client-secret (System/getenv "APP_SECRET")
+                                     :redirect-uri (str "http://" host "/auth_callback")}))
+
+(defn auth-url [& [host & _]] (authorization-url (instagram-credentials host) "likes comments relationships"))
 
 (defn token-and-user-from-code [code]
-  (get-access-token instagram-credentials code))
+  (get-access-token (instagram-credentials) code))
 
 (defmacro ig-with-token [& funcs]
   `(do ~@(map (fn [c]

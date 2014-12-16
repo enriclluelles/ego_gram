@@ -10,6 +10,7 @@
     [compojure.route :as route]
     [compojure.handler]
     [ring.middleware.cors]
+    [prone.middleware]
     [ring.middleware.json]
     [ring.util.response :refer :all]))
 
@@ -41,7 +42,8 @@
 (defroutes app-routes
   (GET "/" [] "")
   (GET "/work!" [] (worker/perform-all-with-timer) "")
-  (GET "/auth" [] (redirect ig/auth-url))
+  (GET "/auth" request
+       (redirect (ig/auth-url (get-in request [:headers "host"]))))
   (GET "/auth_callback" [code]
        (let [frontend-url (System/getenv "FRONTEND_CALLBACK_URL")
              token ((authcb code) :access_token)
@@ -78,4 +80,5 @@
       wrap-with-current-user
       (ring.middleware.cors/wrap-cors :access-control-allow-headers :any
                                       :access-control-allow-origin #".*"
-                                      :access-control-allow-methods [:get :post :put :delete])))
+                                      :access-control-allow-methods [:get :post :put :delete])
+      prone.middleware/wrap-exceptions))

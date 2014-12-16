@@ -10,10 +10,8 @@
                  [postgresql "9.3-1102.jdbc4"]
                  [lib-noir "0.9.4"]
                  [ring/ring-jetty-adapter "1.2.2"]
-                 [cheshire "5.3.1"]]
+                 [prone "0.8.0"]
+                 [environ "0.5.0"]]
   :plugins [[lein-ring "0.8.12"]]
-  :ring {:handler ego-gram.handler/app
-         :port 3000}
-  :profiles {:dev
-             {:dependencies [[javax.servlet/servlet-api "2.5"]
-                             [ring-mock "0.1.5"]]}})
+  :uberjar-name "ego-gram.jar"
+  :profiles {:production {:env {:production :true}}})
