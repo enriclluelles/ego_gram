@@ -1,7 +1,8 @@
 (ns ego-gram.repl
   (:require [ego-gram.handler :refer :all]
-            [ring.server.standalone :refer :all]
             [ring.middleware.file-info :refer :all]
+            [ring.adapter.jetty :as jetty]
+            [environ.core :refer [env]]
             [ring.middleware.file :refer :all]))
 
 (defonce server (atom nil))
@@ -20,13 +21,13 @@
 (defn start-server
   "used for starting the server in development mode from REPL"
   [& [port]]
-  (let [port (if port (Integer/parseInt port) 8080)]
-    (reset! server
-            (serve (get-handler)
-                   {:port port
-                    :auto-reload? true
-                    :join true}))
+  (let [port (Integer. (or port (env :port) 3000))]
+    (reset! server (jetty/run-jetty (get-handler) {:port port :join? false}))
     (println (str "You can view the site at http://localhost:" port))))
+
+(defn- main
+  []
+  (start-server))
 
 (defn stop-server []
   (.stop @server)
