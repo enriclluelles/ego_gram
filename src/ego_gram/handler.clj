@@ -3,6 +3,7 @@
     [ego-gram.auth :refer :all]
     [ego-gram.instagram-client :as ig]
     [ego-gram.data :as data]
+    [ego-gram.worker :as worker]
     [ego-gram.campaigns :as campaigns]
     [ego-gram.middlewares :refer :all]
     [compojure.core :refer :all]
@@ -20,16 +21,16 @@
 
 (defn media [liked popular]
   (let [body (if liked
-               (ig/get-current-user-liked-medias)
+               ((ig/get-current-user-liked-medias) "data")
                (if popular
-                 (ig/get-popular)))]
+                 ((ig/get-popular) "data")))]
     {:body {:medias body}}))
 
 (defn show-session []
   (let [user-from-store (current-user)
         user-id (user-from-store :id)
         access-token (user-from-store :access_token)
-        info-from-instagram (ig/get-user {:user_id user-id})
+        info-from-instagram ((ig/get-user {:user_id user-id}) "data")
         counts-from-instagram (info-from-instagram "counts")
         initial-counts (apply hash-map (interleave [:following :followers :media] (map user-from-store [:follows :followed_by :media])))
         current-counts (apply hash-map (interleave [:following :followers :media] (map counts-from-instagram ["follows" "followed_by" "media"])))
@@ -39,6 +40,7 @@
 
 (defroutes app-routes
   (GET "/" [] "")
+  (GET "/work!" [] (worker/perform-all-with-timer) "")
   (GET "/auth" [] (redirect ig/auth-url))
   (GET "/auth_callback" [code]
        (let [frontend-url (System/getenv "FRONTEND_CALLBACK_URL")

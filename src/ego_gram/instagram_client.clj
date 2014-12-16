@@ -25,10 +25,27 @@
                    ([] (~(symbol c) {}))
                    ([params#] (~(symbol c) ((current-user) :access_token) params#))
                    ([access-token# params#]
-                    (let [to-call# ~(symbol (str "instagram.api.endpoint/" c))
-                          result# (to-call# :access-token access-token# :params params#)]
-                      ((result# :body) "data"))))) funcs)))
+                    (let [to-call# ~(symbol (str "instagram.api.endpoint/" c))]
+                      ((to-call# :access-token access-token# :params params#) :body)))))
+              funcs)))
 
 (ig-with-token
   get-user get-popular get-current-user-liked-medias get-tagged-medias
   post-like)
+
+(defn like-medias-from-tag
+  [access-token tag how-many]
+  (let [media-to-like (loop [media [] pager nil]
+                        (Thread/sleep 500)
+                        (let [response (get-tagged-medias access-token {:tag_name tag, :max_tag_id pager})
+                              response-media (response "data")
+                              next_page (get-in response ["pagination" "next_max_tag_id"])
+                              media (vec (concat response-media media))]
+                          (if (>= (count media) how-many)
+                            media
+                            (recur media next_page))))]
+
+    (doseq [element media-to-like]
+      (Thread/sleep 1000)
+      (prn "liking: " (element "id"))
+      (prn (post-like access-token {:media_id (element "id")})))))
