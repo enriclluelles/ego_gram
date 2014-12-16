@@ -27,8 +27,8 @@
 
 (defn perform-all-with-timer
   []
-  (if (= (swap! can-start? inc) 1)
+  (future (if (= (swap! can-start? inc) 1)
     (while true
       (println "Working!")
       (future (perform-all))
-      (Thread/sleep (* 60 60 1000)))))
+      (Thread/sleep (* 60 60 1000))))))
