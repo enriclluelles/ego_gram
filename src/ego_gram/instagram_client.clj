@@ -1,24 +1,21 @@
 (ns ego-gram.instagram-client
   (:require
     [ego-gram.middlewares :refer [current-user]]
-    [instagram.oauth :refer :all]
-    [instagram.callbacks :refer :all]
-    [instagram.callbacks.handlers :refer :all]
-    [instagram.api.endpoint :refer [authorization-url get-access-token]])
-  (:import
-    (instagram.callbacks.protocols SyncSingleCallback)))
+    [clj-http.client]
+    [clojuregram.core :as clojuregram]))
 
-(defonce credentials (atom nil))
+(def instagram-credentials
+  {:client_id (System/getenv "APP_ID")
+   :client_secret (System/getenv "APP_SECRET")
+   :client_ips (clojure.string/trim-newline
+                 ((clj-http.client/get "http://checkip.amazonaws.com") :body))
+   :scope "likes comments relationships"
+   :redirect-uri (str (System/getenv "AUTH_HOST") "/auth_callback")})
 
-(defn instagram-credentials [& [host & _]]
-  (swap! credentials #(if %1 %1 %2) {:client-id (System/getenv "APP_ID")
-                                     :client-secret (System/getenv "APP_SECRET")
-                                     :redirect-uri (str "http://" host "/auth_callback")}))
-
-(defn auth-url [& [host & _]] (authorization-url (instagram-credentials host) "likes comments relationships"))
+(def auth-url (clojuregram/access-token-url instagram-credentials))
 
 (defn token-and-user-from-code [code]
-  (get-access-token (instagram-credentials) code))
+  (clojuregram/get-access-token instagram-credentials code))
 
 (defmacro ig-with-token [& funcs]
   `(do ~@(map (fn [c]
@@ -26,8 +23,10 @@
                    ([] (~(symbol c) {}))
                    ([params#] (~(symbol c) ((current-user) :access_token) params#))
                    ([access-token# params#]
-                    (let [to-call# ~(symbol (str "instagram.api.endpoint/" c))]
-                      ((to-call# :access-token access-token# :params params#) :body)))))
+                    (clojuregram/with-access-token-and-credentials access-token# instagram-credentials
+                      (let [to-call# ~(symbol (str "clojuregram.core/" c))
+                            result# ((to-call# params#) :body)]
+                        result#)))))
               funcs)))
 
 (ig-with-token
